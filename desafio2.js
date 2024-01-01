@@ -1,86 +1,93 @@
-const fs = require("fs");
+import { promises as fs } from 'fs'
 
 class ProductManager {
-	constructor() {
-		this.path = './products.json'
+	constructor () {
+		this.path = "./products.json"
+		this.products = []
 	}
-
-	addProduct(title, description, price, img, code, stock) {
-		if (!title || !description || !price || !img || !code || !stock) {
+	static id = 0;
+	addProduct = async ( title, description, img, code, stock, price ) => {
+		if ( !title || !description || !img || !code || !stock || !price ) {
 			return console.log("Todos los campos son obligatorios");
 		}
 
-		const added = async () => {
-			try {
-				const resp = await fs.promises.readFile( this.path, "utf-8" );
-				const arrayResp = JSON.parse(resp);
-				if (!arrayResp.some(prod => prod.code === code)) {
-					let id = id++;
-					console.log(id);
-					const newProductAdd = {
-						id,
-						title,
-						description,
-						price,
-						img,
-						code,
-						stock
-					};
-					arrayResp.push(newProductAdd);
-				} else {
-					return console.log(`El producto con codigo ${code} ya fue agregado`);
-				}
-				await fs.promises.writeFile( this.path, JSON.stringify(arrayResp, null, 2), "utf-8" );
-				console.log(`El producto ${title} fue agregado de manera correcta`);
-			} catch (error) {
-				console.log(error);
-			}
-		};
-		added();
+		const resp = await this.readProduct()
+
+		if ( !resp.some(p => p.code === code) ) {			
+			ProductManager.id++
+			const newProduct = {
+				id: ProductManager.id,
+				title,
+				description, 
+				img, 
+				code, 
+				stock, 
+				price
+			}	
+			this.products.push(newProduct)
+			await fs.writeFile(this.path, JSON.stringify(this.products, null, 2))
+			console.log(`Productos ${ title } agregados correctamente`);
+		} else {
+			console.log(`El producto con el codigo ${ code } ya a sido agregado`);
+		}
 	}
 
-	getProducts() {
-		const readProduct = async () => {
-			try {
-				const resp = await fs.promises.readFile(this.path, 'utf-8')
-				console.log(resp)
-			} catch (error) {
-				console.log(error);
-			}
-		}
-		readProduct();
+	readProduct = async () => {	
+		const resp = await fs.readFile(this.path, 'utf-8')
+		const respJSON = JSON.parse(resp)
+		return respJSON	
 	}
 
-	getProductById(id) {
-		const getItem = async () => {
-			try {
-				const resp = await fs.promises.readFile(this.path, 'utf-8')
-				const arrayResp = JSON.parse(resp);
-				const prodFind = arrayResp.find(prod => prod.id === id)
-				if (prodFind) {
-					return console.log(prodFind)
-				} else {
-					console.log(`El producto que busca con el id: ${id} no existe`)
-				}
-			} catch (error) {
-				console.log(error);
-			}
-		}
-		getItem();
+	getProduct = async () => {
+		const resp1 = await this.readProduct()
+		return console.log(resp1)
 	}
 
-	deleteProduct(id) {
-		const deleteItem = async () => {
-			const item = await fs.promises.readFile(this.path, 'utf-8')
-			const arrayResp = JSON.parse(item);
-			const filterProd = arrayResp.filter(pd => pd.id !== id)
-			await fs.promises.writeFile(this.path, filterProd)
-			item = await fs.promises.readFile(this.path, 'utf-8')
-			console.log(item);
+	getProductById = async (id) => {
+		const resp2 = await this.readProduct()
+		const productFind = resp2.find(prod => prod.id === id)
+		return productFind ? console.log(productFind) : console.log(`El producto con id:(${ id }) no existe`);
+	}
+
+	updateProducts = async ({ id, ...products }) => {
+		const listProduct = await this.readProduct();
+		const index = listProduct.findIndex(prod => prod.id === id)
+
+		if ( index !== -1 ) {
+			listProduct[index] = { id, ...products }
+			await fs.writeFile(this.path, JSON.stringify(listProduct, null, 2))
+			console.log(listProduct[index]);
+			return listProduct[index]
+		} else {
+			console.log('Producto no encontrado');
 		}
-		deleteItem()
+	}
+
+	deleteProductById = async (id) => {
+		const resp3 = await this.readProduct()
+		const validation = resp3.some(findId => findId.id === id)
+		if (validation !== true) {
+			return console.log(`El producto con id:(${ id }) no existe`);
+		}
+		const index = resp3.findIndex(prod => prod.id === id)
+
+		if ( index !== -1 ) {
+			resp3.splice(index, 1)
+			await fs.writeFile(this.path, JSON.stringify(resp3, null, 2))
+		} else {
+			console.log('Producto no encontrado');
+		}
+		
+		const prodDelete = await this.readProduct()
+		console.log(prodDelete);
 	}
 }
-
-const prodManager = new ProductManager();
-
+const instanceProducts = new ProductManager
+// instanceProducts.addProduct('title1', 'description1', 'url', 'jk7873', 10, 35)
+// instanceProducts.addProduct('title2', 'description2', 'url', 'yuNs93', 10, 25)
+// instanceProducts.addProduct('title3', 'description3', 'url', 'gt78jsx', 10, 65)
+// instanceProducts.addProduct('title4', 'description4', 'url', 'ur43kla', 10, 45)
+// instanceProducts.getProduct()
+// instanceProducts.getProductById()
+// instanceProducts.updateProducts()
+// instanceProducts.deleteProductById()
